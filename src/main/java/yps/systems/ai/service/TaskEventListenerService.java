@@ -16,10 +16,12 @@ import java.util.Optional;
 public class TaskEventListenerService {
 
     private final ITaskRepository taskRepository;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public TaskEventListenerService(ITaskRepository taskRepository) {
+    public TaskEventListenerService(ITaskRepository taskRepository, ObjectMapper objectMapper) {
         this.taskRepository = taskRepository;
+        this.objectMapper = objectMapper;
     }
 
     @KafkaListener(topics = "${env.kafka.topicEvent}")
@@ -28,7 +30,7 @@ public class TaskEventListenerService {
         switch (eventType) {
             case "CREATE_TASK":
                 try {
-                    Task task = new ObjectMapper().readValue(payload, Task.class);
+                    Task task = objectMapper.readValue(payload, Task.class);
                     taskRepository.save(task);
                 } catch (JsonProcessingException e) {
                     System.err.println("Error parsing Objective JSON: " + e.getMessage());
@@ -36,7 +38,7 @@ public class TaskEventListenerService {
                 break;
             case "UPDATE_TASK":
                 try {
-                    Task task = new ObjectMapper().readValue(payload, Task.class);
+                    Task task = objectMapper.readValue(payload, Task.class);
                     Optional<Task> optionalTask = taskRepository.findById(task.getId());
                     optionalTask.ifPresent(existingPerson -> taskRepository.save(task));
                 } catch (JsonProcessingException e) {
